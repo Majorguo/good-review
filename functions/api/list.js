@@ -13,13 +13,14 @@ export async function onRequest({ env }) {
     }
   } while (cursor);
 
-  // 只保留未删除的，并按更新时间/创建时间排序（最新在前）
-  list = list.filter(item => !item.deleted)
-             .sort((a, b) => {
-               const tA = a.updated_at_ts || a.created_at_ts || 0;
-               const tB = b.updated_at_ts || b.created_at_ts || 0;
-               return tB - tA;
-             });
+  // 只保留未删除的，并按时间升序排序（最早在前）
+  list = list
+    .filter(item => !item.deleted)
+    .sort((a, b) => {
+      const tA = a.updated_at_ts || a.created_at_ts || 0;
+      const tB = b.updated_at_ts || b.created_at_ts || 0;
+      return tA - tB; // ⭐ 这里改成升序
+    });
 
   // 分组返回
   const grouped = {
