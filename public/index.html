@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>好评展示</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 12px;
+  background: #f9f9f9;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.review-section {
+  max-width: 600px;
+  margin: 0 auto 25px;
+}
+
+.review-section h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+/* 列表容器：纵向排列 */
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 单条好评 */
+.review-item {
+  background: #fff;
+  padding: 14px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 内容展示 */
+.review-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 按钮容器 */
+.review-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 按钮样式 */
+.review-buttons button {
+  padding: 6px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f2f2f2;
+  cursor: pointer;
+}
+
+.review-buttons button:active {
+  background: #e0e0e0;
+}
+</style>
+</head>
+<body>
+
+<h1>好评展示</h1>
+
+<div class="review-section">
+  <h2>手机贴膜好评</h2>
+  <div class="review-list" id="list-film">加载中...</div>
+</div>
+
+<div class="review-section">
+  <h2>更换电池好评</h2>
+  <div class="review-list" id="list-battery">加载中...</div>
+</div>
+
+<script>
+async function loadReviews() {
+  try {
+    const res = await fetch('/api/list');
+    const grouped = await res.json();
+
+    renderList('list-film', grouped['膜'] || []);
+    renderList('list-battery', grouped['电池'] || []);
+  } catch {
+    document.getElementById('list-film').innerText = '加载失败';
+    document.getElementById('list-battery').innerText = '加载失败';
+  }
+}
+
+function renderList(containerId, list) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+
+  if (!list.length) {
+    container.innerHTML = '<div>暂无好评</div>';
+    return;
+  }
+
+  list.slice(0, 3).forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'review-item';
+
+    const text = document.createElement('div');
+    text.className = 'review-text';
+    text.textContent = item.content;
+
+    const btns = document.createElement('div');
+    btns.className = 'review-buttons';
+    btns.innerHTML = `
+      <button onclick="copyReview('${encodeURIComponent(item.content)}')">复制</button>
+      <button onclick="deleteReview('${item.id}')">删除</button>
+    `;
+
+    div.appendChild(text);
+    div.appendChild(btns);
+    container.appendChild(div);
+  });
+}
+
+function copyReview(content) {
+  navigator.clipboard.writeText(decodeURIComponent(content)).then(() => {
+    showToast('已复制');
+  }).catch(() => {
+    showToast('复制失败');
+  });
+}
+
+async function deleteReview(id) {
+  try {
+    const res = await fetch('/api/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if (res.ok) loadReviews();
+    else alert('删除失败');
+  } catch {
+    alert('删除失败');
+  }
+}
+
+function showToast(text) {
+  const toast = document.createElement('div');
+  toast.innerText = text;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.75);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 9999;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 1500);
+}
+
+// 页面加载
+window.addEventListener('DOMContentLoaded', loadReviews);
+</script>
+
+</body>
+</html>

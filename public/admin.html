@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>后台管理</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { font-family: sans-serif; margin:0; padding:10px; background:#f0f0f0; }
+h1 { text-align:center; margin-bottom:20px; }
+
+/* 登录 */
+#loginDiv {
+  display:flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top:40px;
+}
+#loginDiv input, #loginDiv button {
+  width:200px;
+  font-size:18px;
+}
+#loginDiv input { height:40px; margin-bottom:10px; }
+#loginDiv button { height:50px; }
+
+/* 主体 */
+#adminDiv {
+  width:100%;
+  max-width:600px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+/* 输入区 */
+.review-input-group {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+textarea.review-textarea {
+  width:100%;
+  padding:10px;
+  resize:none;
+  font-size:16px;
+  box-sizing:border-box;
+  overflow-y:auto;
+}
+
+button.add-btn {
+  width:100%;
+  padding:12px;
+  font-size:16px;
+}
+
+/* 分组列表 */
+.review-group {
+  background:#eaeaea;
+  padding:10px;
+  border-radius:6px;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+}
+
+.review-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 列表项 */
+.review-item {
+  background:#fff;
+  padding:6px 10px;
+  border-radius:5px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.review-content {
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.review-buttons {
+  display:flex;
+  gap:6px;
+  justify-content:flex-end;
+}
+
+.review-buttons button {
+  padding:4px 10px;
+  font-size:14px;
+}
+
+#feedback { color:green; }
+</style>
+</head>
+<body>
+
+<h1>好评后台管理</h1>
+
+<!-- 登录 -->
+<div id="loginDiv">
+  <input type="password" id="passwordInput" placeholder="请输入管理员密码">
+  <button id="loginBtn">登录</button>
+</div>
+
+<!-- 管理 -->
+<div id="adminDiv" style="display:none;">
+
+  <div class="review-input-group">
+    <textarea id="newReviewFilm" class="review-textarea" placeholder="输入手机贴膜好评"></textarea>
+    <button class="add-btn" onclick="addReview('膜')">添加手机贴膜好评</button>
+  </div>
+
+  <div class="review-input-group">
+    <textarea id="newReviewBattery" class="review-textarea" placeholder="输入更换电池好评"></textarea>
+    <button class="add-btn" onclick="addReview('电池')">添加更换电池好评</button>
+  </div>
+
+  <div id="feedback"></div>
+
+  <div class="review-group">
+    <h3>手机贴膜好评</h3>
+    <div id="filmList" class="review-list"></div>
+  </div>
+
+  <div class="review-group">
+    <h3>更换电池好评</h3>
+    <div id="batteryList" class="review-list"></div>
+  </div>
+
+</div>
+
+<script>
+const filmTextarea = document.getElementById('newReviewFilm');
+const batteryTextarea = document.getElementById('newReviewBattery');
+
+/* 输入框高度：手机 1:0.5，电脑固定 */
+function adjustTextarea(textarea){
+  const width = textarea.offsetWidth;
+  const baseHeight = window.innerWidth <= 600 ? width * 0.5 : 250;
+  textarea.style.height = baseHeight + 'px';
+
+  textarea.oninput = ()=>{
+    textarea.style.height = baseHeight + 'px';
+    if(textarea.scrollHeight > baseHeight){
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  };
+}
+
+/* 列表高度：严格 1:1 */
+function adjustListHeight(){
+  const width = filmTextarea.offsetWidth;
+  if(!width) return;
+
+  document.querySelectorAll('.review-group').forEach(group=>{
+    group.style.height = (width + 40) + 'px'; 
+  });
+}
+
+/* 初始化 */
+adjustTextarea(filmTextarea);
+adjustTextarea(batteryTextarea);
+window.addEventListener('resize', ()=>{
+  adjustTextarea(filmTextarea);
+  adjustTextarea(batteryTextarea);
+  adjustListHeight();
+});
+
+/* 登录 */
+document.getElementById('loginBtn').onclick = ()=>{
+  const pwd = passwordInput.value;
+  if(!pwd) return alert('请输入密码');
+  window.ADMIN_TOKEN = pwd;
+  localStorage.setItem('ADMIN_TOKEN',pwd);
+  loginDiv.style.display='none';
+  adminDiv.style.display='flex';
+  loadAdminReviews();
+  adjustListHeight();
+};
+
+/* 自动登录 */
+window.addEventListener('DOMContentLoaded', ()=>{
+  const saved = localStorage.getItem('ADMIN_TOKEN');
+  if(saved){
+    window.ADMIN_TOKEN = saved;
+    loginDiv.style.display='none';
+    adminDiv.style.display='flex';
+    loadAdminReviews();
+    adjustListHeight();
+  }
+});
+
+/* 添加 */
+async function addReview(category){
+  const textarea = category==='膜' ? filmTextarea : batteryTextarea;
+  const content = textarea.value.trim();
+  if(!content) return alert('请输入内容');
+
+  const res = await fetch('/api/add',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({content,category,token:window.ADMIN_TOKEN})
+  });
+  const data = await res.json();
+  if(res.ok){
+    feedback.innerText=data.message;
+    textarea.value='';
+    adjustTextarea(textarea);
+    loadAdminReviews();
+  }else{
+    alert(data.error || data.message);
+  }
+}
+
+/* 加载列表 */
+async function loadAdminReviews(){
+  const res = await fetch('/api/list');
+  const data = await res.json();
+
+  renderList(data['膜']||[], filmList);
+  renderList(data['电池']||[], batteryList);
+
+  adjustListHeight();
+}
+
+function renderList(list, container){
+  container.innerHTML='';
+  list.forEach(item=>{
+    const div = document.createElement('div');
+    div.className='review-item';
+    div.innerHTML=`
+      <div class="review-content">${item.content}</div>
+      <div class="review-buttons">
+        <button onclick="adminDelete('${item.id}')">删除</button>
+        <button onclick="adminEdit('${item.id}','${encodeURIComponent(item.content)}')">修改</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+/* 删除 */
+async function adminDelete(id){
+  await fetch('/api/delete',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,token:window.ADMIN_TOKEN})
+  });
+  loadAdminReviews();
+}
+
+/* 修改 */
+async function adminEdit(id,content){
+  const text = decodeURIComponent(prompt('修改内容',decodeURIComponent(content)));
+  if(!text) return;
+  await fetch('/api/edit',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,content:text,token:window.ADMIN_TOKEN})
+  });
+  loadAdminReviews();
+}
+</script>
+
+</body>
+</html>
