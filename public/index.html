@@ -142,18 +142,29 @@ function copyReview(content) {
 }
 
 async function deleteReview(id) {
+  const token = prompt('请输入删除密码');
+  if (!token) return;
+
   try {
     const res = await fetch('/api/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
+      body: JSON.stringify({ id, token })
     });
-    if (res.ok) loadReviews();
-    else alert('删除失败');
+
+    const result = await res.json();
+
+    if (res.ok) {
+      showToast('删除成功');
+      loadReviews();
+    } else {
+      alert(result.error || '删除失败');
+    }
   } catch {
     alert('删除失败');
   }
 }
+
 
 function showToast(text) {
   const toast = document.createElement('div');
