@@ -250,12 +250,29 @@ function renderList(list, container){
 
 /* 删除 */
 async function adminDelete(id){
-  await fetch('/api/delete',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id,token:window.ADMIN_TOKEN})
-  });
-  loadAdminReviews();
+  try {
+    const res = await fetch('/api/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        token: window.ADMIN_TOKEN
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || '删除失败');
+      return;
+    }
+
+    showToast('删除成功');
+    loadAdminReviews();
+
+  } catch (err) {
+    alert('删除请求失败');
+  }
 }
 
 /* 修改 */
