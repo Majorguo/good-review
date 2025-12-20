@@ -19,7 +19,7 @@ export async function onRequest({ env }) {
     .sort((a, b) => {
       const tA = a.updated_at_ts || a.created_at_ts || 0;
       const tB = b.updated_at_ts || b.created_at_ts || 0;
-      return tA - tB; // ⭐ 这里改成升序
+      return tA - tB; // ⭐ 最早添加的在前
     });
 
   // 分组返回
@@ -29,6 +29,10 @@ export async function onRequest({ env }) {
   };
 
   return new Response(JSON.stringify(grouped), {
-    headers: { 'Content-Type': 'application/json' }
+    headers: {
+      'Content-Type': 'application/json',
+      // ⭐⭐⭐ 关键：禁止 Cloudflare 缓存
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+    }
   });
 }
