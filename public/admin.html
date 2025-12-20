@@ -267,11 +267,12 @@ async function adminDelete(id){
       return;
     }
 
-    showToast('删除成功');
+    // 成功
     loadAdminReviews();
 
-  } catch (err) {
+  } catch (e) {
     alert('删除请求失败');
+    console.error(e);
   }
 }
 
