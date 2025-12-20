@@ -10,12 +10,12 @@ export async function onRequestPost({ request, env }) {
 
   /**
    * ⭐ 权限规则：
-   * 1️⃣ 后台管理页：token === ADMIN_LOGIN_PASSWORD → 放行
+   * 1️⃣ 后台管理页：token === ADMIN_PASSWORD → 放行
    * 2️⃣ 前端展示页：token === DELETE_PASSWORD       → 放行
    * 3️⃣ 其他情况：拒绝
    */
   const isAdmin =
-    token && token === env.ADMIN_LOGIN_PASSWORD;
+    token && token === env.ADMIN_PASSWORD;
 
   const isFrontDelete =
     token && token === env.DELETE_PASSWORD;
